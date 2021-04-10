@@ -1,6 +1,8 @@
 import sys
 import os
 
+TAB = "    "
+
 class GenerateModel:
 
 
@@ -60,15 +62,56 @@ class GenerateModel:
 		if not os.path.exists(self.outputFileName):
 			os.mknod(self.outputFileName)
 
-	def writeObjFunction(self):
-		objFunctionString = "Minimisze\n\tobj: "
-		for j in range(self.J):
-			objFunctionString += "x_"+str(j+1)+ " " + str(self.fj[j])+ " + "
-			for i in range(self.I):
-				objFunctionString += str(self.tij[i][j]) + " " + "y_" + str(i+1) + "_" + str(j+1) + " + "
+	def writeOneFamilyOneCenterConstraint(self):
+		constraintString = "Subject To\n"
 
-		for k in range(len(self.pk)):
-			objFunctionString += "z_" + str(k+1) + " " + str(self.pk[k]) + " + "
+		for i in range(self.I):
+
+			cFamily = TAB + "c_family_" + str(i+1) + ": "
+			for j in range(self.J):
+				cFamily += "y_" + str(i+1) + "_" + str(j+1) + " + "
+			cFamily = cFamily[:-3]
+			cFamily += " = 1\n"
+
+			constraintString += cFamily
+		return constraintString
+
+	def writeCapacityConstraint(self):
+		constraintString = ""
+
+		for j in range(self.J):
+			cCapacity = TAB + "c_capacity_" + str(j+1) + ": "
+
+			for i in range(self.I):
+				cCapacity += str(self.di[i])  + "y_" + str(i+1) + "_" + str(j+1) + " + "
+			cCapacity = cCapacity[:-3]
+			cCapacity += " - " + str(self.cj[j]) + "x_" + str(j+1) + " <= 0\n"
+			constraintString+= cCapacity
+
+		return constraintString
+
+	def writePenaltyConstraint(self):
+		constraintString = ""
+
+		for k in range(self.K):
+			for lk_1 in range(len(self.S[k])):
+				for lk_2 in range(len(self.S[k])):
+
+					if not(lk_1 == lk_2):
+						constraintString += TAB + "c_z" + str(k+1)+"_"+str(self.S[k][lk_1-1])+"_"+str(self.S[k][lk_2-1])+": z_" + str(k+1) + " - " + "x_" + str(self.S[k][lk_1-1])+ " - " + "x_" + str(self.S[k][lk_2-1]) + " >= -1\n"
+						
+		return constraintString
+
+	def writeObjFunction(self):
+		objFunctionString = "Minimize\n" + TAB+ "obj: "
+		for j in range(self.J):
+			objFunctionString += str(self.fj[j]) +"x_"+str(j+1)+ " + "
+			for i in range(self.I):
+				objFunctionString += str(self.tij[i][j]) + "y_" + str(i+1) + "_" + str(j+1) + " + "
+
+		if(self.penalty == 1):
+			for k in range(len(self.pk)):
+				objFunctionString += str(self.pk[k]) + "z_" + str(k+1) + " + "
 
 		objFunctionString = objFunctionString[:-3]
 		return objFunctionString + "\n"
@@ -76,20 +119,25 @@ class GenerateModel:
 	def writeBinary(self):
 		binaryString = "Binary\n"
 		for j in range(self.J):
-			binaryString += "\tx_" +str(j+1)+"\n"
+			binaryString += TAB +"x_" +str(j+1)+"\n"
 
 		for j in range(self.J):
 			for i in range(self.I):
-				binaryString += "\ty_" + str(i+1) + "_" + str(j+1)+"\n"
+				binaryString += TAB + "y_" + str(i+1) + "_" + str(j+1)+"\n"
 
-		for k in range(len(self.S)):
-			binaryString += "\tz_" + str(k+1) + "\n"
+		if(self.penalty == 1):
+			for k in range(len(self.S)):
+				binaryString += TAB + "z_" + str(k+1) + "\n"
 
 		return binaryString
 
 	def writeFile(self):
 		file = open(self.outputFileName, "w")
 		file.write(self.writeObjFunction())
+		file.write(self.writeOneFamilyOneCenterConstraint())
+		file.write(self.writeCapacityConstraint())
+		if self.penalty == 1:
+			file.write(self.writePenaltyConstraint())
 		file.write(self.writeBinary())
 		file.write("END")
 		file.close()
