@@ -60,7 +60,7 @@ class GenerateModel:
 	def createFile(self):
 		self.outputFileName = "model" + "_" + str(self.penalty) + "_" +str(self.I) +"_" + str(self.J) + "_" +self.instanceNumber + ".lp"
 		if not os.path.exists(self.outputFileName):
-			os.mknod(self.outputFileName)
+			open(self.outputFileName,'w').close()
 
 	def writeOneFamilyOneCenterConstraint(self):
 		constraintString = "Subject To\n"
