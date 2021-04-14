@@ -98,8 +98,20 @@ class GenerateModel:
 				for lk_2 in range(len(self.S[k])):
 
 					if not(lk_1 == lk_2):
-						constraintString += TAB + "c_z" + str(k+1)+"_"+str(self.S[k][lk_1-1])+"_"+str(self.S[k][lk_2-1])+": z_" + str(k+1) + " - " + "x_" + str(self.S[k][lk_1-1])+ " - " + "x_" + str(self.S[k][lk_2-1]) + " >= -1\n"
-						
+						constraintString += TAB + "c_z" + str(k+1)+"_"+str(self.S[k][lk_1-1])+"_"+str(self.S[k][lk_2-1])+": z_" + str(k+1) + " - " + "x_" + str(self.S[k][lk_1+1])+ " - " + "x_" + str(self.S[k][lk_2+1]) + " >= -1\n"
+		return constraintString
+
+	def writeNewPenaltyConstraint(self):
+		constraintString = ""
+
+		for k in range(self.K):
+			c = TAB + "c_z_" + str(k+1) +": "
+			for lk in range(len(self.S[k])):
+				nb = int(self.S[k][lk]) + 1
+				c += "x_" + str(nb) + " + "
+
+			constraintString += c[:-3] + " - " + str(len(self.S[k])) +" z_" + str(k+1) + "<=1\n"
+
 		return constraintString
 
 	def writeObjFunction(self):
@@ -137,7 +149,7 @@ class GenerateModel:
 		file.write(self.writeOneFamilyOneCenterConstraint())
 		file.write(self.writeCapacityConstraint())
 		if self.penalty == 1:
-			file.write(self.writePenaltyConstraint())
+			file.write(self.writeNewPenaltyConstraint())
 		file.write(self.writeBinary())
 		file.write("END")
 		file.close()
